@@ -1,4 +1,5 @@
 import { WechatyBuilder } from "wechaty";
+import { FileBox } from 'file-box';
 import qrcodeTerminal from "qrcode-terminal";
 import config from "./config.js";
 import ChatGPT from "./chatgpt.js";
@@ -18,6 +19,7 @@ async function onMessage(msg) {
   const room = msg.room();
   const alias = (await contact.alias()) || (await contact.name());
   const isText = msg.type() === bot.Message.Type.Text;
+  const isImage = msg.type() === bot.Message.Type.Image;
   if (msg.self()) {
     return;
   }
@@ -25,7 +27,7 @@ async function onMessage(msg) {
   if (room && isText) {
     const topic = await room.topic();
     console.log(
-      `Group name: ${topic} talker: ${await contact.name()} content: ${content}`
+      `${new Date().toLocaleString()}: Group name: ${topic} talker: ${await contact.name()} content: ${content}`
     );
 
     const pattern = RegExp(`^@${receiver.name()}\\s+${config.groupKey}[\\s]*`);
@@ -36,24 +38,36 @@ async function onMessage(msg) {
         return;
       } else {
         console.log(
-          "Content is not within the scope of the customizition format"
+          "${new Date().toLocaleString()}: Content is not within the scope of the customizition format"
         );
       }
     }
-  } else if (isText) {
-    console.log(`talker: ${alias} content: ${content}`);
-    if (content.startsWith(config.privateKey) || config.privateKey === "") {
-      let privateContent = content;
-      if (config.privateKey === "") {
-        privateContent = content.substring(config.privateKey.length).trim();
+  } else
+    if (isText) {
+      console.log(`${new Date().toLocaleString()}: talker: ${alias} sent text content: ${content}`);
+      if(content == "test-image") {
+        const fileBox = FileBox.fromUrl('https://wechaty.js.org/img/icon.png')
+        await contact.say(fileBox)
       }
-      chatGPTClient.replyMessage(contact, privateContent);
-    } else {
-      console.log(
-        "Content is not within the scope of the customizition format"
-      );
+      else if (content.startsWith(config.privateKey) || config.privateKey === "") {
+        let privateContent = content;
+        if (config.privateKey === "") {
+          privateContent = content.substring(config.privateKey.length).trim();
+        }
+        chatGPTClient.replyMessage(contact, privateContent);
+      }
+      else {
+        console.log(
+          "${new Date().toLocaleString()}: Content is not within the scope of the customizition format"
+        );
+      }
     }
-  }
+    else if(isImage) {
+      const fileBox = await msg.toFileBox();
+      const fileName = `/tmp/${fileBox.name}.png`;
+      await fileBox.toFile(fileName);
+      console.log(`${new Date().toLocaleString()}: talker: ${alias} sent image content saved locally at ${fileName}`);
+    }
 }
 
 function onScan(qrcode) {
@@ -67,13 +81,13 @@ function onScan(qrcode) {
 }
 
 async function onLogin(user) {
-  console.log(`${user} has logged in`);
+  console.log(`${new Date().toLocaleString()}: ${user} has logged in`);
   const date = new Date();
-  console.log(`Current time:${date}`);
+  console.log(`${new Date().toLocaleString()}: Current time:${date}`);
 }
 
 function onLogout(user) {
-  console.log(`${user} has logged out`);
+  console.log(`${new Date().toLocaleString()}: ${user} has logged out`);
 }
 
 async function initProject() {
@@ -95,9 +109,9 @@ async function initProject() {
 
     bot
       .start()
-      .then(() => console.log("Start to log in wechat..."))
+      .then(() => console.log(`${new Date().toLocaleString()}: Start to log in wechat...`))
       .catch((e) => console.error(e));
   } catch (error) {
-    console.log("init error: ", error);
+    console.log("${new Date().toLocaleString()}: init error: ", error);
   }
 }
