@@ -51,7 +51,7 @@ export default class ChatGPT {
       config.OPENAI_API_KEY,
       {
         ...clientOptions,
-        reverseProxyUrl: `{config.reverseProxyUrl}/v1/chat/completions`,
+        reverseProxyUrl: `${config.reverseProxyUrl}/v1/chat/completions`,
       },
       cacheOptions
     );
@@ -103,18 +103,15 @@ async getChatGPTImageReply(content) {
         body: jsonData,
     });
 
-    console.log(`${new Date().toLocaleString()}: response: ${response}`)
-
     // Check if the request was successful
     if (!response.ok) {
       throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
     }
     // Parse the JSON response
     const responseBody = await response.json() as any;
-    console.log(`${new Date().toLocaleString()}: response: ${responseBody}`);
-
     // Access the 'url' value inside the 'data' array
     if (responseBody.data && responseBody.data.length > 0) {
+      console.log(`${new Date().toLocaleString()}: image URL: ${responseBody.data[0].url}`);
       return responseBody.data[0].url;
     } else {
       throw new Error(`${new Date().toLocaleString()}: No data found in the response`);
@@ -167,7 +164,7 @@ async getChatGPTImageReply(content) {
     try {
 
       const imageUrl = await this.getChatGPTImageReply(content);
-      const message = '图片已生成。'
+      const message = '让您久等了，图片已生成。'
 
       if (
         (contact.topic && contact?.topic() && config.groupReplyMode) ||
@@ -175,7 +172,6 @@ async getChatGPTImageReply(content) {
       ) {
         const result = content + "\n-----------\n" + message;
         await contact.say(result);
-        return;
       } else {
         await contact.say(message);
       }
