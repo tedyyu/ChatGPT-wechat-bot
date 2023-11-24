@@ -1,6 +1,11 @@
 import { ChatGPTClient } from "@waylaidwanderer/chatgpt-api";
 import config from "./config.js";
 
+//For Image Generation
+import { FileBox } from 'file-box';
+import { fetch } from 'fetch-undici';
+import { ProxyAgent } from 'undici';
+
 const clientOptions = {
   // (Optional) Support for a reverse proxy for the completions endpoint (private API server).
   // Warning: This will expose your `openaiApiKey` to a third party. Consider the risks before using this.
@@ -46,7 +51,7 @@ export default class ChatGPT {
       config.OPENAI_API_KEY,
       {
         ...clientOptions,
-        reverseProxyUrl: config.reverseProxyUrl,
+        reverseProxyUrl: `{config.reverseProxyUrl}/v1/chat/completions`,
       },
       cacheOptions
     );
@@ -57,7 +62,7 @@ export default class ChatGPT {
     const response = await this.chatGPT.sendMessage("hello");
     console.log(`${new Date().toLocaleString()}: response test: `, response);
   }
-  async getChatGPTReply(content, contactId) {
+  async getChatGPTTextReply(content, contactId) {
     const data = await this.chatGPT.sendMessage(
       content,
       this.chatOption[contactId]
@@ -74,6 +79,52 @@ export default class ChatGPT {
     return response;
   }
 
+  // TypeScript function to send a POST request with JSON data
+async getChatGPTImageReply(content) {
+  try {
+    const data = {
+      'model': 'dall-e-3',
+      'prompt': `${content}`,
+      "n": 1,
+      "size": "1024x1024"
+    };
+    // Convert the JavaScript object to a JSON string
+    const jsonData = JSON.stringify(data);
+    console.log(`${config.reverseProxyUrl}/v1/images/generations`)
+    console.log(`${jsonData}`)
+
+    // Send the POST request
+    const response = await fetch(`${config.reverseProxyUrl}/v1/images/generations`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.OPENAI_API_KEY}`
+        },
+        body: jsonData,
+    });
+
+    console.log(`${new Date().toLocaleString()}: response: ${response}`)
+
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
+    }
+    // Parse the JSON response
+    const responseBody = await response.json() as any;
+    console.log(`${new Date().toLocaleString()}: response: ${responseBody}`);
+
+    // Access the 'url' value inside the 'data' array
+    if (responseBody.data && responseBody.data.length > 0) {
+      return responseBody.data[0].url;
+    } else {
+      throw new Error(`${new Date().toLocaleString()}: No data found in the response`);
+    }
+
+  } catch (error) {
+      console.error(`${new Date().toLocaleString()}: Error during image generation api: ${error}`);
+  }
+}
+
   async replyMessage(contact, content) {
     const { id: contactId } = contact;
     try {
@@ -88,7 +139,7 @@ export default class ChatGPT {
         await contact.say("对话已被重置");
         return;
       }
-      const message = await this.getChatGPTReply(content, contactId);
+      const message = await this.getChatGPTTextReply(content, contactId);
 
       if (
         (contact.topic && contact?.topic() && config.groupReplyMode) ||
@@ -100,6 +151,40 @@ export default class ChatGPT {
       } else {
         await contact.say(message);
       }
+    } catch (e: any) {
+      console.error(e);
+      if (e.message.includes("timed out")) {
+        await contact.say(
+          content +
+            "\n-----------\nERROR: Please try again, ChatGPT timed out for waiting response."
+        );
+      }
+    }
+  }
+
+  async replyImage(contact, content) {
+    const { id: contactId } = contact;
+    try {
+
+      const imageUrl = await this.getChatGPTImageReply(content);
+      const message = '图片已生成。'
+
+      if (
+        (contact.topic && contact?.topic() && config.groupReplyMode) ||
+        (!contact.topic && config.privateReplyMode)
+      ) {
+        const result = content + "\n-----------\n" + message;
+        await contact.say(result);
+        return;
+      } else {
+        await contact.say(message);
+      }
+
+      if (imageUrl) {
+        const fileBox = FileBox.fromUrl(imageUrl)
+        await contact.say(fileBox)
+      }
+
     } catch (e: any) {
       console.error(e);
       if (e.message.includes("timed out")) {

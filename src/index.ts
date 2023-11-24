@@ -24,7 +24,7 @@ async function onMessage(msg) {
     return;
   }
 
-  if (room && isText) {
+  if (room) {
     const topic = await room.topic();
     console.log(
       `${new Date().toLocaleString()}: Group name: ${topic} talker: ${await contact.name()} content: ${content}`
@@ -34,7 +34,12 @@ async function onMessage(msg) {
     if (await msg.mentionSelf()) {
       if (pattern.test(content)) {
         const groupContent = content.replace(pattern, "");
-        chatGPTClient.replyMessage(room, groupContent);
+        if(isText) {
+          if(new RegExp(config.imageGenKeyRegex).test(content))
+            chatGPTClient.replyImage(room, groupContent);
+          else
+            chatGPTClient.replyMessage(room, groupContent);
+        }
         return;
       } else {
         console.log(
@@ -47,7 +52,10 @@ async function onMessage(msg) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} sent text content: ${content}`);
       if(content == "test-image") {
         const fileBox = FileBox.fromUrl('https://wechaty.js.org/img/icon.png')
-        await contact.say(fileBox)
+        await contact.say(fileBox) //btw, this works to send image
+      }
+      else if(new RegExp(config.imageGenKeyRegex).test(content)) {
+        chatGPTClient.replyImage(contact, content);
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
         let privateContent = content;
