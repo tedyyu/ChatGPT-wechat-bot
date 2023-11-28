@@ -4,6 +4,8 @@ export default {
   // 反向代理地址，简单说就是你的在国外服务器地址，如何获取看README
   // 可换成你自己的，白嫖代理地址 https://ai.devtool.tech/proxy/v1/chat/completions
   reverseProxyUrl: "https://api.openai.com",
+  // 分离WechatBot 和 ChatGPTClient backend,便于热更新后台逻辑，无需wechat重新扫描登录
+  backendPort: 3000,
   // 在群组中设置唤醒微信机器人的关键词
   groupKey: "",
   // 在私聊中设置唤醒微信机器人的关键词

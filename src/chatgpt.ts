@@ -45,6 +45,7 @@ const cacheOptions = {
 export default class ChatGPT {
   private chatGPT: any;
   private chatOption: any;
+
   constructor() {
     this.chatGPT = new ChatGPTClient(
       config.OPENAI_API_KEY,
@@ -57,11 +58,13 @@ export default class ChatGPT {
     this.chatOption = {};
     // this.test();
   }
+
   async test() {
     const response = await this.chatGPT.sendMessage("hello");
     console.log(`${new Date().toLocaleString()}: response test: `, response);
   }
-  async getChatGPTTextReply(content, contactId) {
+
+  async getGPTTextReply(content, contactId) {
     //check temperature in the content first
     const regex = /temperature=(\d\.\d)/;
     const match = regex.exec(content);
@@ -94,115 +97,52 @@ export default class ChatGPT {
   }
 
   // TypeScript function to send a POST request with JSON data
-async getChatGPTImageReply(content) {
-  try {
-    const data = {
-      'model': 'dall-e-3',
-      'prompt': `${content}`,
-      "n": 1,
-      "size": "1024x1024"
+  async getGPTImageReply(content) {
+    try {
+      const data = {
+        'model': 'dall-e-3',
+        'prompt': `${content}`,
+        "n": 1,
+        "size": "1024x1024"
+      };
+      // Convert the JavaScript object to a JSON string
+      const jsonData = JSON.stringify(data);
+      console.log(`${config.reverseProxyUrl}/v1/images/generations`)
+      console.log(`${jsonData}`)
+
+      // Send the POST request
+      const response = await fetch(`${config.reverseProxyUrl}/v1/images/generations`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.OPENAI_API_KEY}`
+          },
+          body: jsonData,
+      });
+
+      // Check if the request was successful
+      if (!response.ok) {
+        throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
+      }
+      // Parse the JSON response
+      const responseBody = await response.json() as any;
+      // Access the 'url' value inside the 'data' array
+      if (responseBody.data && responseBody.data.length > 0) {
+        console.log(`${new Date().toLocaleString()}: image URL: ${responseBody.data[0].url}`);
+        return responseBody.data[0].url;
+      } else {
+        throw new Error(`${new Date().toLocaleString()}: No data found in the response`);
+      }
+
+    } catch (error) {
+        console.error(`${new Date().toLocaleString()}: Error during image generation api: ${error}`);
+    }
+  }
+
+  resetChatContext(contactId) {
+    this.chatOption = {
+      ...this.chatOption,
+      [contactId]: {},
     };
-    // Convert the JavaScript object to a JSON string
-    const jsonData = JSON.stringify(data);
-    console.log(`${config.reverseProxyUrl}/v1/images/generations`)
-    console.log(`${jsonData}`)
-
-    // Send the POST request
-    const response = await fetch(`${config.reverseProxyUrl}/v1/images/generations`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.OPENAI_API_KEY}`
-        },
-        body: jsonData,
-    });
-
-    // Check if the request was successful
-    if (!response.ok) {
-      throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
-    }
-    // Parse the JSON response
-    const responseBody = await response.json() as any;
-    // Access the 'url' value inside the 'data' array
-    if (responseBody.data && responseBody.data.length > 0) {
-      console.log(`${new Date().toLocaleString()}: image URL: ${responseBody.data[0].url}`);
-      return responseBody.data[0].url;
-    } else {
-      throw new Error(`${new Date().toLocaleString()}: No data found in the response`);
-    }
-
-  } catch (error) {
-      console.error(`${new Date().toLocaleString()}: Error during image generation api: ${error}`);
-  }
-}
-
-  async replyMessage(contact, content) {
-    const { id: contactId } = contact;
-    try {
-      if (
-        content.trim().toLocaleLowerCase() ===
-        config.resetKey.toLocaleLowerCase()
-      ) {
-        this.chatOption = {
-          ...this.chatOption,
-          [contactId]: {},
-        };
-        await contact.say("对话已被重置");
-        return;
-      }
-      const message = await this.getChatGPTTextReply(content, contactId);
-
-      if (
-        (contact.topic && contact?.topic() && config.groupReplyMode) ||
-        (!contact.topic && config.privateReplyMode)
-      ) {
-        const result = content + "\n-----------\n" + message;
-        await contact.say(result);
-        return;
-      } else {
-        await contact.say(message);
-      }
-    } catch (e: any) {
-      console.error(e);
-      if (e.message.includes("timed out")) {
-        await contact.say(
-          content +
-            "\n-----------\nERROR: Please try again, ChatGPT timed out for waiting response."
-        );
-      }
-    }
-  }
-
-  async replyImage(contact, content) {
-    const { id: contactId } = contact;
-    try {
-
-      const imageUrl = await this.getChatGPTImageReply(content);
-      const message = '让您久等了，图片已生成，正在传输。'
-
-      if (
-        (contact.topic && contact?.topic() && config.groupReplyMode) ||
-        (!contact.topic && config.privateReplyMode)
-      ) {
-        const result = content + "\n-----------\n" + message;
-        await contact.say(result);
-      } else {
-        await contact.say(message);
-      }
-
-      if (imageUrl) {
-        const fileBox = FileBox.fromUrl(imageUrl)
-        await contact.say(fileBox)
-      }
-
-    } catch (e: any) {
-      console.error(e);
-      if (e.message.includes("timed out")) {
-        await contact.say(
-          content +
-            "\n-----------\nERROR: Please try again, ChatGPT timed out for waiting response."
-        );
-      }
-    }
   }
 }

@@ -6,7 +6,7 @@ import ChatGPT from "./chatgpt.js";
 
 let bot: any = {};
 const startTime = new Date();
-let chatGPTClient: any = null;
+
 initProject();
 async function onMessage(msg) {
   // 避免重复发送
@@ -37,9 +37,9 @@ async function onMessage(msg) {
         const groupContent = content.replace(pattern, "");
         if(isText) {
           if(new RegExp(config.imageGenKeyRegex).test(content))
-            chatGPTClient.replyImage(room, groupContent);
+            replyImage(room, groupContent);
           else
-            chatGPTClient.replyMessage(room, groupContent);
+            replyMessage(room, groupContent);
         }
         return;
       } else {
@@ -52,14 +52,14 @@ async function onMessage(msg) {
     if (isText) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} sent text content: ${content}`);
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
-        chatGPTClient.replyImage(contact, content);
+        replyImage(contact, content);
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
         let privateContent = content;
         if (config.privateKey === "") {
           privateContent = content.substring(config.privateKey.length).trim();
         }
-        chatGPTClient.replyMessage(contact, privateContent);
+        replyMessage(contact, privateContent);
       }
       else {
         console.log(
@@ -79,6 +79,108 @@ async function onMessage(msg) {
       await fileBox.toFile(fileName);
       console.log(`${new Date().toLocaleString()}: talker: ${alias} sent audio content saved locally at ${fileName}`);
     }
+}
+
+async function replyMessage(contact, content) {
+  const { id: contactId } = contact;
+  try {
+    if (
+      content.trim().toLocaleLowerCase() ===
+      config.resetKey.toLocaleLowerCase()
+    ) {
+      await callBackend('reset', content, contact.id);
+      await contact.say("对话已被重置");
+      return;
+    }
+    const message = await callBackend('chat', content, contact.id);
+
+    if (
+      (contact.topic && contact?.topic() && config.groupReplyMode) ||
+      (!contact.topic && config.privateReplyMode)
+    ) {
+      const result = content + "\n-----------\n" + message;
+      await contact.say(result);
+      return;
+    } else {
+      await contact.say(message);
+    }
+  } catch (e: any) {
+    console.error(e);
+    if (e.message.includes("timed out")) {
+      await contact.say(
+        content +
+          "\n-----------\nERROR: Please try again, ChatGPT timed out for waiting response."
+      );
+    }
+  }
+}
+
+async function replyImage(contact, content) {
+  const { id: contactId } = contact;
+  try {
+
+    const imageUrl = await callBackend('image', content, contact.id);
+    const message = '让您久等了，图片已生成，正在传输。'
+
+    if (
+      (contact.topic && contact?.topic() && config.groupReplyMode) ||
+      (!contact.topic && config.privateReplyMode)
+    ) {
+      const result = content + "\n-----------\n" + message;
+      await contact.say(result);
+    } else {
+      await contact.say(message);
+    }
+
+    if (imageUrl) {
+      const fileBox = FileBox.fromUrl(imageUrl)
+      await contact.say(fileBox)
+    }
+
+  } catch (e: any) {
+    console.error(e);
+    if (e.message.includes("timed out")) {
+      await contact.say(
+        content +
+          "\n-----------\n连接GPT超时错误, 请稍后重试"
+      );
+    }
+  }
+}
+
+// TypeScript function to send a POST request with JSON data
+async function callBackend(command, content, contactId) {
+  try {
+    // Send the POST request
+    const response = await fetch(`http://localhost/${config.backendPort}/api/${command}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'content': content,
+          'contactId': contactId
+        }),
+    });
+
+    // Parse the JSON response
+    const responseBody = await response.json() as any;
+
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error(`HTTP Status Code: ${response.status}, error message: ${responseBody.error}`);
+    }
+
+    if (responseBody.data) {
+      return responseBody.data;
+    } else {
+      throw new Error(`No data found in the backend response`);
+    }
+
+  } catch (error) {
+      console.error(`${new Date().toLocaleString()}: Error during backend api: ${error}`);
+      throw error;
+  }
 }
 
 function onScan(qrcode) {
@@ -103,7 +205,6 @@ function onLogout(user) {
 
 async function initProject() {
   try {
-    chatGPTClient = new ChatGPT();
     bot = WechatyBuilder.build({
       name: "WechatEveryDay",
       puppet: "wechaty-puppet-wechat", // 如果有token，记得更换对应的puppet
