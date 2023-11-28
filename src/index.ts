@@ -51,7 +51,7 @@ async function onMessage(msg) {
     }
   } else
     if (isText) {
-      console.log(`${new Date().toLocaleString()}: talker: ${alias} sent text content: ${content}`);
+      console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${contact.id}) sent text content: ${content}`);
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
         replyImage(contact, content);
       }

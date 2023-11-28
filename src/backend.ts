@@ -15,7 +15,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const { content, contactId } = req.body;
     console.log(`/api/chat: user ${contactId}, prompt : ${content}`);
     const message = await chatGPTClient.getGPTTextReply(content, contactId);
-    res.send({'data:': message});
+    console.log(`  response: ${message}`);
+    res.send({'data': message});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
@@ -34,7 +35,8 @@ app.post('/api/image', async (req, res) => {
     const { content, contactId } = req.body;
     console.log(`/api/image: user ${contactId}, prompt : ${content}`);
     const imageUrl = await chatGPTClient.getGPTImageReply(content, contactId);
-    res.send({'data:': imageUrl});
+    console.log(`  response: ${imageUrl}`);
+    res.send({'data': imageUrl});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
