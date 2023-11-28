@@ -3,6 +3,7 @@ import { FileBox } from 'file-box';
 import qrcodeTerminal from "qrcode-terminal";
 import config from "./config.js";
 import ChatGPT from "./chatgpt.js";
+import { fetch } from 'fetch-undici';
 
 let bot: any = {};
 const startTime = new Date();
