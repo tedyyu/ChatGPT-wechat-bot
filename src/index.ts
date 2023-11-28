@@ -153,7 +153,7 @@ async function replyImage(contact, content) {
 async function callBackend(command, content, contactId) {
   try {
     // Send the POST request
-    const response = await fetch(`http://localhost/${config.backendPort}/api/${command}`, {
+    const response = await fetch(`http://localhost:${config.backendPort}/api/${command}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
