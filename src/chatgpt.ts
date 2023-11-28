@@ -13,8 +13,7 @@ const clientOptions = {
   // (Optional) Parameters as described in https://platform.openai.com/docs/api-reference/completions
   modelOptions: {
     // You can override the model name and any other parameters here, like so:
-    //model: "gpt-3.5-turbo",
-    model: "gpt-4-1106-preview",
+    model: config.chatModel ?? "gpt-4-1106-preview",
     // I'm overriding the temperature to 0 here for demonstration purposes, but you shouldn't need to override this
     // for normal usage.
     temperature: 0,
@@ -63,9 +62,24 @@ export default class ChatGPT {
     console.log(`${new Date().toLocaleString()}: response test: `, response);
   }
   async getChatGPTTextReply(content, contactId) {
+    //check temperature in the content first
+    const regex = /temperature=(\d\.\d)/;
+    const match = regex.exec(content);
+    let temperature = 0.0;
+
+    if (match && match[1]) {
+      temperature = parseFloat(match[1]); // Convert the captured group to a float.
+    }
+
+    let options = this.chatOption[contactId] ?? {};
+    if(temperature > 0) {
+      console.log(`${new Date().toLocaleString()}: user customized temperature: ${temperature}`);
+      options.modelOptions = {'temperature': temperature};
+    }
+
     const data = await this.chatGPT.sendMessage(
       content,
-      this.chatOption[contactId]
+      options
     );
     const { response, conversationId, messageId } = data;
     this.chatOption = {
@@ -164,7 +178,7 @@ async getChatGPTImageReply(content) {
     try {
 
       const imageUrl = await this.getChatGPTImageReply(content);
-      const message = '让您久等了，图片已生成。'
+      const message = '让您久等了，图片已生成，正在传输。'
 
       if (
         (contact.topic && contact?.topic() && config.groupReplyMode) ||

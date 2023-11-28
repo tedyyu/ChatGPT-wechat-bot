@@ -20,6 +20,7 @@ async function onMessage(msg) {
   const alias = (await contact.alias()) || (await contact.name());
   const isText = msg.type() === bot.Message.Type.Text;
   const isImage = msg.type() === bot.Message.Type.Image;
+  const isAudio = msg.type() === bot.Message.Type.Audio;
   if (msg.self()) {
     return;
   }
@@ -50,11 +51,7 @@ async function onMessage(msg) {
   } else
     if (isText) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} sent text content: ${content}`);
-      if(content == "test-image") {
-        const fileBox = FileBox.fromUrl('https://wechaty.js.org/img/icon.png')
-        await contact.say(fileBox) //btw, this works to send image
-      }
-      else if(new RegExp(config.imageGenKeyRegex).test(content)) {
+      if(new RegExp(config.imageGenKeyRegex).test(content)) {
         chatGPTClient.replyImage(contact, content);
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
@@ -72,9 +69,15 @@ async function onMessage(msg) {
     }
     else if(isImage) {
       const fileBox = await msg.toFileBox();
-      const fileName = `/tmp/${fileBox.name}.png`;
+      const fileName = `/tmp/${fileBox.name}`;
       await fileBox.toFile(fileName);
       console.log(`${new Date().toLocaleString()}: talker: ${alias} sent image content saved locally at ${fileName}`);
+    }
+    else if(isAudio) {
+      const fileBox = await msg.toFileBox();
+      const fileName = `/tmp/${fileBox.name}`;
+      await fileBox.toFile(fileName);
+      console.log(`${new Date().toLocaleString()}: talker: ${alias} sent audio content saved locally at ${fileName}`);
     }
 }
 
