@@ -42,6 +42,32 @@ app.post('/api/image', async (req, res) => {
     res.status(400).send({'error': e.message});
 }});
 
+// Define the /api/vision route
+app.post('/api/vision', async (req, res) => {
+  try {
+    const { content, localImageFile, contactId } = req.body;
+    console.log(`/api/vision: user ${contactId}, prompt : ${content}`);
+    const result = await chatGPTClient.getGPTVisionReply(content, contactId);
+    console.log(`  response: ${result}`);
+    res.send({'data': result});
+  } catch (e: any) {
+    console.error(e);
+    res.status(400).send({'error': e.message});
+}});
+
+// Define the /api/transcribe route
+app.post('/api/transcribe', async (req, res) => {
+  try {
+    const { localMp3File, contactId } = req.body;
+    console.log(`/api/transcribe: user ${contactId}, prompt : ${localMp3File}`);
+    const imageUrl = await chatGPTClient.getGPTAudioReply(localMp3File, contactId);
+    console.log(`  response: ${imageUrl}`);
+    res.send({'data': imageUrl});
+  } catch (e: any) {
+    console.error(e);
+    res.status(400).send({'error': e.message});
+}});
+
 // Start the server
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);

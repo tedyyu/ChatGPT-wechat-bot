@@ -6,6 +6,12 @@ import { FileBox } from 'file-box';
 import { fetch } from 'fetch-undici';
 import { ProxyAgent } from 'undici';
 
+//For Vision
+import fs from 'fs';
+
+//For Audio
+import { FormData } from 'undici';
+
 const clientOptions = {
   // (Optional) Support for a reverse proxy for the completions endpoint (private API server).
   // Warning: This will expose your `openaiApiKey` to a third party. Consider the risks before using this.
@@ -91,7 +97,6 @@ export default class ChatGPT {
         parentMessageId: messageId,
       },
     };
-    console.log(`${new Date().toLocaleString()}: response: `, response);
     // response is a markdown-formatted string
     return response;
   }
@@ -128,14 +133,116 @@ export default class ChatGPT {
       const responseBody = await response.json() as any;
       // Access the 'url' value inside the 'data' array
       if (responseBody.data && responseBody.data.length > 0) {
-        console.log(`${new Date().toLocaleString()}: image URL: ${responseBody.data[0].url}`);
         return responseBody.data[0].url;
       } else {
-        throw new Error(`${new Date().toLocaleString()}: No data found in the response`);
+        throw new Error(`${new Date().toLocaleString()}: No data found in the image api response`);
       }
 
     } catch (error) {
         console.error(`${new Date().toLocaleString()}: Error during image generation api: ${error}`);
+    }
+  }
+
+  async getGPTVisionReply(content, localImageFile) {
+    try {
+      const base64Image: string = this.encodeImage(localImageFile);
+
+      const data = {
+        "model": "gpt-4-vision-preview",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": `${content}`
+              },
+              {
+                "type": "image_url",
+                "image_url": {
+                  "url": `data:image/jpeg;base64,${base64Image}`,
+                }
+              }
+            ]
+          }
+        ],
+      };
+      // Convert the JavaScript object to a JSON string
+      const jsonData = JSON.stringify(data);
+      console.log(`${jsonData}`)
+
+      // Send the POST request
+      const response = await fetch(`${config.reverseProxyUrl}/v1/chat/completions`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.OPENAI_API_KEY}`
+          },
+          body: jsonData,
+      });
+
+      // Check if the request was successful
+      if (!response.ok) {
+        throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
+      }
+      // Parse the JSON response
+      const responseBody = await response.json() as any;
+      // Access the 'url' value inside the 'data' array
+      if (responseBody.choices && responseBody.choices.length > 0) {
+        return responseBody.choices[0].message?.content;
+      } else {
+        throw new Error(`${new Date().toLocaleString()}: No data found in the vision api response`);
+      }
+
+    } catch (error) {
+        console.error(`${new Date().toLocaleString()}: Error during vision api: ${error}`);
+    }
+  }
+
+  async getGPTAudioReply(localMp3File) {
+    try {
+      const form = new FormData();
+      form.append('file', fs.createReadStream(localMp3File));
+      form.append('model', 'whisper-1');
+
+      console.log(`${config.reverseProxyUrl}/v1/audio/transcriptions`)
+
+      // Send the POST request
+      const response = await fetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.OPENAI_API_KEY}`
+          },
+          body: form,
+      });
+
+      // Check if the request was successful
+      if (!response.ok) {
+        throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
+      }
+      // Parse the JSON response
+      const responseBody = await response.json() as any;
+      // Access the 'url' value inside the 'data' array
+      if (responseBody.text) {
+        return responseBody.text;
+      } else {
+        throw new Error(`${new Date().toLocaleString()}: No data found in the audio/transcriptions api response`);
+      }
+
+    } catch (error) {
+        console.error(`${new Date().toLocaleString()}: Error during audio/transcriptions api: ${error}`);
+    }
+  }
+
+  // Function to encode the image
+  encodeImage(imagePath: string): string {
+    try {
+      const imageBuffer = fs.readFileSync(imagePath);
+      return imageBuffer.toString('base64');
+    } catch (error) {
+      console.error(`${new Date().toLocaleString()}: Error open image file and convert its content to base64: ${error}`);
+      throw error;
     }
   }
 
