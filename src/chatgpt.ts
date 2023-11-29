@@ -166,6 +166,7 @@ export default class ChatGPT {
             ]
           }
         ],
+        "max_tokens": 2400
       };
 
       console.log(`${config.reverseProxyUrl}/v1/chat/completions`)
@@ -192,7 +193,7 @@ export default class ChatGPT {
       console.log(JSON.stringify(responseBody));
       // Access the 'url' value inside the 'data' array
       if (responseBody.choices && responseBody.choices.length > 0) {
-        return responseBody.choices.map(choice => choice.content).join('');
+        return responseBody.choices[0].message?.content;
       } else {
         throw new Error(`${new Date().toLocaleString()}: No data found in the vision api response`);
       }
