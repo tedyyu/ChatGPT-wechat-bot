@@ -8,7 +8,7 @@ import { fetch } from 'fetch-undici';
 import fs from 'fs';
 
 //For Audio
-import {fetch as nfetch} from 'node-fetch';
+import {default as nfetch} from 'node-fetch';
 import FormData from 'form-data';
 
 const clientOptions = {
@@ -211,23 +211,22 @@ export default class ChatGPT {
       console.log(`${config.reverseProxyUrl}/v1/audio/transcriptions`)
 
       // Make the request
-      nfetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
+      const response = await nfetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
-            // 'Content-Type': 'multipart/form-data' is set automatically by the form-data library
+            'Authorization': `Bearer ${config.OPENAI_API_KEY}`
+            // Content-Type header is set automatically
         },
         body: form
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log(JSON.stringify(data));
-        return data.text;
-      })
-      .catch(error => {
-        console.error(`${new Date().toLocaleString()}: Error during audio/transcriptions api: ${error}`);
-        throw error;
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseBody: any = await response.json();
+      console.log(JSON.stringify(responseBody));
+      return responseBody.text;
     } catch (error) {
         console.error(`${new Date().toLocaleString()}: Error during audio/transcriptions api: ${error}`);
     }
