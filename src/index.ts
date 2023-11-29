@@ -229,16 +229,20 @@ async function replyToAudio(contact, localMp3File) {
 // TypeScript function to send a POST request with JSON data
 async function callBackend(command, content, contactId, localFiles) {
   try {
+    let data = {
+      'content': content,
+      'contactId': contactId
+    };
+    if(localFiles.length > 0) {
+      data['filePath'] = localFiles[0];
+    }
     // Send the POST request
     const response = await fetch(`http://localhost:${config.backendPort}/api/${command}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          'content': content,
-          'contactId': contactId
-        }),
+        body: JSON.stringify(data),
     });
 
     // Parse the JSON response

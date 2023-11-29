@@ -45,7 +45,7 @@ app.post('/api/image', async (req, res) => {
 // Define the /api/vision route
 app.post('/api/vision', async (req, res) => {
   try {
-    const { content, localImageFile, contactId } = req.body;
+    const { content, contactId, localImageFile } = req.body;
     console.log(`/api/vision: user ${contactId}, prompt : ${content}`);
     const result = await chatGPTClient.getGPTVisionReply(content, contactId);
     console.log(`  response: ${result}`);
@@ -55,11 +55,11 @@ app.post('/api/vision', async (req, res) => {
     res.status(400).send({'error': e.message});
 }});
 
-// Define the /api/transcribe route
-app.post('/api/transcribe', async (req, res) => {
+// Define the /api/audio route
+app.post('/api/audio', async (req, res) => {
   try {
-    const { localMp3File, contactId } = req.body;
-    console.log(`/api/transcribe: user ${contactId}, prompt : ${localMp3File}`);
+    const { content, contactId, localMp3File } = req.body;
+    console.log(`/api/audio: user ${contactId}, prompt : ${localMp3File}`);
     const imageUrl = await chatGPTClient.getGPTAudioReply(localMp3File, contactId);
     console.log(`  response: ${imageUrl}`);
     res.send({'data': imageUrl});
