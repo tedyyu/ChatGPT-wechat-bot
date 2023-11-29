@@ -167,9 +167,10 @@ export default class ChatGPT {
           }
         ],
       };
-      // Convert the JavaScript object to a JSON string
+
+      console.log(`${config.reverseProxyUrl}/v1/chat/completions`)
       const jsonData = JSON.stringify(data);
-      console.log(`${jsonData}`)
+      //console.log(`${jsonData}`)
 
       // Send the POST request
       const response = await fetch(`${config.reverseProxyUrl}/v1/chat/completions`, {
@@ -185,11 +186,12 @@ export default class ChatGPT {
       if (!response.ok) {
         throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
       }
+      console.log(response);
       // Parse the JSON response
       const responseBody = await response.json() as any;
       // Access the 'url' value inside the 'data' array
       if (responseBody.choices && responseBody.choices.length > 0) {
-        return responseBody.choices[0].message?.content;
+        return responseBody.choices.map(choice => choice.content).join('');
       } else {
         throw new Error(`${new Date().toLocaleString()}: No data found in the vision api response`);
       }
