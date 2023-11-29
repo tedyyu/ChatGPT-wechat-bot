@@ -54,6 +54,19 @@ async function onMessage(msg) {
   } else
     if (isText || isAudio) {
 
+      if (isText &&
+        content.trim().toLocaleLowerCase() ===
+        config.resetKey.toLocaleLowerCase()
+      ) {
+        await callBackend('reset', content, contact.id, []);
+        await contact.say("上下文记忆已重置，可以开始全新的对话");
+        if (filesPerUsers[contact.id]) {
+          // If the id does exist in the map, create an empty array
+          filesPerUsers[contact.id] = [];
+        }
+        return;
+      }
+
       if(isAudio) {
         if(new RegExp(config.trialFeatureUserAllowedListRegex).test(alias)) {
           const fileBox = await msg.toFileBox();
@@ -68,6 +81,7 @@ async function onMessage(msg) {
       }
 
       console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`);
+      content = `分类用户需求，根据如下规则返回结果。 如果是生成图片，返回image，如果是理解或解释图片里的信息，分类为vision，否则直接回答用户提问，回答时不要加上分类过程，直接输出你对用户的回答内容。这是用户输入： ${content}`;
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
         replyImage(contact, content);
       }
@@ -94,33 +108,28 @@ async function onMessage(msg) {
       const fileName = `/tmp/${fileBox.name}`;
       await fileBox.toFile(fileName);
       console.log(`${new Date().toLocaleString()}: talker: ${alias} sent image content saved locally at ${fileName}`);
-      if (!filesPerUsers[contact.id]) {
-        // If the id does not exist in the map, create an empty array
-        filesPerUsers[contact.id] = [];
-      } else {
-          // If the id exists, replace the array with a new array containing only fileName
-          filesPerUsers[contact.id] = [fileName];
-      }
-      contact.say('已收到你的图片，请开始就图片提问，例如：这张图说的是什么？');
+      // if (!filesPerUsers[contact.id]) {
+      //   // If the id does not exist in the map, create an empty array
+      //   filesPerUsers[contact.id] = [];
+      // }
+
+      filesPerUsers[contact.id] = [fileName];
+      await contact.say('已收到你的图片，请开始就图片提问，例如：这张图说的是什么？');
     }
 }
 
 async function replyMessage(contact, content) {
   const { id: contactId } = contact;
   try {
-    if (
-      content.trim().toLocaleLowerCase() ===
-      config.resetKey.toLocaleLowerCase()
-    ) {
-      await callBackend('reset', content, contact.id, []);
-      await contact.say("对话已被重置");
-      if (filesPerUsers[contact.id]) {
-        // If the id does exist in the map, create an empty array
-        filesPerUsers[contact.id] = [];
-      }
-      return;
-    }
     const message = await callBackend('chat', content, contact.id, []);
+
+    //Audio transcription
+    if(message == 'image') {
+      replyImage(contact, content);
+    }
+    else if(message == 'vision') {
+      replyToVision(contact, content);
+    }
 
     if (
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
@@ -179,18 +188,8 @@ async function replyImage(contact, content) {
 async function replyToVision(contact, content) {
   const { id: contactId } = contact;
   try {
-    if (
-      content.trim().toLocaleLowerCase() ===
-      config.resetKey.toLocaleLowerCase()
-    ) {
-      await callBackend('reset', content, contact.id, []);
-      await contact.say("对话已被重置");
-      if (filesPerUsers[contact.id]) {
-        // If the id does exist in the map, create an empty array
-        filesPerUsers[contact.id] = [];
-      }
-      return;
-    }
+    if(!filesPerUsers[contact.id])
+      await contact.say('你希望我来解释图像的问题对吗？但我并没有收到你的图片，请先发送图再提问。');
 
     const message = await callBackend('vision', content, contact.id, filesPerUsers[contact.id][0]);
 
