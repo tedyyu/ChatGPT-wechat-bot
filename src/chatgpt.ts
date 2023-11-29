@@ -2,14 +2,13 @@ import { ChatGPTClient } from "@waylaidwanderer/chatgpt-api";
 import config from "./config.js";
 
 //For Image Generation
-import { FileBox } from 'file-box';
 import { fetch } from 'fetch-undici';
-import { ProxyAgent } from 'undici';
 
 //For Vision
 import fs from 'fs';
 
 //For Audio
+import {fetch as nfetch} from 'node-fetch';
 import FormData from 'form-data';
 
 const clientOptions = {
@@ -211,29 +210,24 @@ export default class ChatGPT {
 
       console.log(`${config.reverseProxyUrl}/v1/audio/transcriptions`)
 
-      // Send the POST request
-      const response = await fetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${config.OPENAI_API_KEY}`
-          },
-          body: form,
+      // Make the request
+      nfetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
+            // 'Content-Type': 'multipart/form-data' is set automatically by the form-data library
+        },
+        body: form
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(JSON.stringify(data));
+        return data.text;
+      })
+      .catch(error => {
+        console.error(`${new Date().toLocaleString()}: Error during audio/transcriptions api: ${error}`);
+        throw error;
       });
-
-      // Check if the request was successful
-      if (!response.ok) {
-        throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
-      }
-      // Parse the JSON response
-      const responseBody = await response.json() as any;
-      // Access the 'url' value inside the 'data' array
-      if (responseBody.text) {
-        return responseBody.text;
-      } else {
-        throw new Error(`${new Date().toLocaleString()}: No data found in the audio/transcriptions api response`);
-      }
-
     } catch (error) {
         console.error(`${new Date().toLocaleString()}: Error during audio/transcriptions api: ${error}`);
     }
