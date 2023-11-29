@@ -10,7 +10,7 @@ import { ProxyAgent } from 'undici';
 import fs from 'fs';
 
 //For Audio
-import { FormData } from 'undici';
+import FormData from 'form-data';
 
 const clientOptions = {
   // (Optional) Support for a reverse proxy for the completions endpoint (private API server).
@@ -215,7 +215,7 @@ export default class ChatGPT {
       const response = await fetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
           method: 'POST',
           headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'multipart/form-data',
               'Authorization': `Bearer ${config.OPENAI_API_KEY}`
           },
           body: form,
