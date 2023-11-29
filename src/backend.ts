@@ -47,7 +47,7 @@ app.post('/api/vision', async (req, res) => {
   try {
     const {content: content, contactId: contactId, filePath: localImageFile } = req.body;
     console.log(`/api/vision: user ${contactId}, localImageFile: ${localImageFile}, prompt : ${content}`);
-    const result = await chatGPTClient.getGPTVisionReply(content, contactId);
+    const result = await chatGPTClient.getGPTVisionReply(content, localImageFile);
     console.log(`  response: ${result}`);
     res.send({'data': result});
   } catch (e: any) {
