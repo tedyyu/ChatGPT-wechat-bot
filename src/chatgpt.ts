@@ -211,7 +211,7 @@ export default class ChatGPT {
       const response = await fetch(`${config.reverseProxyUrl}/v1/audio/transcriptions`, {
           method: 'POST',
           headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'multipart/form-data',
               'Authorization': `Bearer ${config.OPENAI_API_KEY}`
           },
           body: form,

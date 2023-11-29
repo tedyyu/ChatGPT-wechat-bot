@@ -142,7 +142,6 @@ async function replyMessage(contact, content) {
       await contact.say(message);
     }
   } catch (e: any) {
-    console.error(e);
     if (e.message.includes("timed out")) {
       await contact.say(
         content +
@@ -175,7 +174,6 @@ async function replyImage(contact, content) {
     }
 
   } catch (e: any) {
-    console.error(e);
     if (e.message.includes("timed out")) {
       await contact.say(
         content +
@@ -204,7 +202,6 @@ async function replyToVision(contact, content) {
     }
 
   } catch (e: any) {
-    console.error(e);
     if (e.message.includes("timed out")) {
       await contact.say(
         content +
@@ -221,7 +218,6 @@ async function replyToAudio(contact, localMp3File) {
     return transcriptions;
   } catch (e: any) {
     console.error(e);
-    throw e;
   }
 }
 
