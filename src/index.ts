@@ -91,11 +91,7 @@ async function onMessage(msg) {
           privateContent = content.substring(config.privateKey.length).trim();
         }
 
-        if (filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
-          replyToVision(contact, privateContent);
-        }
-        else
-          replyMessage(contact, privateContent);
+        replyMessage(contact, privateContent);
       }
       else {
         console.log(
