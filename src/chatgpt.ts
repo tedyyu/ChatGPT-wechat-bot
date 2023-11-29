@@ -186,9 +186,10 @@ export default class ChatGPT {
       if (!response.ok) {
         throw new Error(`${new Date().toLocaleString()}: HTTP Status Code: ${response.status}`);
       }
-      console.log(response);
+
       // Parse the JSON response
       const responseBody = await response.json() as any;
+      console.log(responseBody);
       // Access the 'url' value inside the 'data' array
       if (responseBody.choices && responseBody.choices.length > 0) {
         return responseBody.choices.map(choice => choice.content).join('');
