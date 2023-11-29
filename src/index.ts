@@ -81,7 +81,7 @@ async function onMessage(msg) {
       }
 
       console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`);
-      content = `分类用户需求，根据如下规则返回结果。 如果是生成图片，返回image，如果是理解或解释图片里的信息，分类为vision，否则直接回答用户提问，回答时不要加上分类过程，直接输出你对用户的回答内容。这是用户输入： ${content}`;
+
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
         replyImage(contact, content);
       }
@@ -91,7 +91,11 @@ async function onMessage(msg) {
           privateContent = content.substring(config.privateKey.length).trim();
         }
 
-        replyMessage(contact, privateContent);
+        if (filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
+          replyToVision(contact, privateContent);
+        }
+        else
+          replyMessage(contact, privateContent);
       }
       else {
         console.log(
@@ -117,7 +121,8 @@ async function onMessage(msg) {
 async function replyMessage(contact, content) {
   const { id: contactId } = contact;
   try {
-    const message = await callBackend('chat', content, contact.id, []);
+    const templatedContent = `分类用户需求，根据如下规则返回结果。 如果是生成图片，返回image，如果是理解或解释图片里的信息，分类为vision，否则直接回答用户提问，回答时不要加上分类过程，直接输出你对用户的回答内容。这是用户输入： ${content}`;
+    const message = await callBackend('chat', templatedContent, contact.id, []);
 
     //Audio transcription
     if(message == 'image') {
@@ -141,7 +146,7 @@ async function replyMessage(contact, content) {
     if (e.message.includes("timed out")) {
       await contact.say(
         content +
-          '\n-----------\n出错了, 连接服务超时, 请稍后再试。'
+          '\n-----------\n连接GPT超时错误, 请稍后重试。'
       );
     }
   }
@@ -182,10 +187,10 @@ async function replyImage(contact, content) {
 async function replyToVision(contact, content) {
   const { id: contactId } = contact;
   try {
-    if(!filesPerUsers[contact.id])
+    if(!filesPerUsers[contact.id] || filesPerUsers[contact.id].length == 0)
       await contact.say('你希望我来解释图像的问题对吗？但我并没有收到你的图片，请先发送图再提问。');
 
-    const message = await callBackend('vision', content, contact.id, filesPerUsers[contact.id][0]);
+    const message = await callBackend('vision', content, contact.id, filesPerUsers[contact.id]);
 
     if (
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
@@ -201,7 +206,7 @@ async function replyToVision(contact, content) {
     if (e.message.includes("timed out")) {
       await contact.say(
         content +
-          "\n-----------\n连接GPT超时错误, 请稍后重试"
+          "\n-----------\n连接GPT超时错误, 请稍后重试。"
       );
     }
   }
