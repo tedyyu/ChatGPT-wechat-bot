@@ -126,10 +126,10 @@ async function replyMessage(contact, content) {
 
     //Audio transcription
     if(message == 'image') {
-      replyImage(contact, content);
+      return replyImage(contact, content);
     }
     else if(message == 'vision') {
-      replyToVision(contact, content);
+      return replyToVision(contact, content);
     }
 
     if (
