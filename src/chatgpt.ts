@@ -189,7 +189,7 @@ export default class ChatGPT {
 
       // Parse the JSON response
       const responseBody = await response.json() as any;
-      console.log(responseBody);
+      console.log(JSON.stringify(responseBody));
       // Access the 'url' value inside the 'data' array
       if (responseBody.choices && responseBody.choices.length > 0) {
         return responseBody.choices.map(choice => choice.content).join('');
