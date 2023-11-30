@@ -4,6 +4,7 @@ import qrcodeTerminal from "qrcode-terminal";
 import config from "./config.js";
 import ChatGPT from "./chatgpt.js";
 import { fetch } from 'fetch-undici';
+import fs from 'fs';
 
 let bot: any = {};
 const startTime = new Date();
@@ -23,6 +24,7 @@ async function onMessage(msg) {
   const isText = msg.type() === bot.Message.Type.Text;
   const isImage = msg.type() === bot.Message.Type.Image;
   const isAudio = msg.type() === bot.Message.Type.Audio;
+  const isAlowedTrialUser = new RegExp(config.trialFeatureUserAllowedListRegex).test(alias);
   if (msg.self()) {
     return;
   }
@@ -40,6 +42,7 @@ async function onMessage(msg) {
             console.log(
               `${new Date().toLocaleString()}: Group name: ${topic} talker: ${await contact.name()} (id: ${await contact.id}) sent text content: ${content}`
             );
+            return;
           }
           else
             replyMessage(room, groupContent);
@@ -68,7 +71,7 @@ async function onMessage(msg) {
       }
 
       if(isAudio) {
-        if(new RegExp(config.trialFeatureUserAllowedListRegex).test(alias)) {
+        if(isAlowedTrialUser) {
           const fileBox = await msg.toFileBox();
           const fileName = `/tmp/${fileBox.name}`;
           await fileBox.toFile(fileName);
@@ -83,7 +86,7 @@ async function onMessage(msg) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`);
 
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
-        replyImage(contact, content);
+        return replyImage(contact, content);
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
         let privateContent = content;
@@ -91,7 +94,8 @@ async function onMessage(msg) {
           privateContent = content.substring(config.privateKey.length).trim();
         }
 
-        if (filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
+        if (isAlowedTrialUser &&
+            filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
           replyToVision(contact, privateContent);
         }
         else
@@ -103,7 +107,7 @@ async function onMessage(msg) {
         );
       }
     }
-    else if(isImage && new RegExp(config.trialFeatureUserAllowedListRegex).test(alias)) {
+    else if(isImage && isAlowedTrialUser) {
       const fileBox = await msg.toFileBox();
       const fileName = `/tmp/${fileBox.name}`;
       await fileBox.toFile(fileName);
@@ -120,15 +124,17 @@ async function onMessage(msg) {
 
 async function replyMessage(contact, content) {
   const { id: contactId } = contact;
+  const alias = (await contact.alias()) || (await contact.name());
+  const isAlowedTrialUser = new RegExp(config.trialFeatureUserAllowedListRegex).test(alias);
+
   try {
     const templatedContent = `分类用户需求，根据如下规则返回结果。 如果是生成图片，返回image，如果是理解或解释图片里的信息，分类为vision，否则直接回答用户提问，回答时不要加上分类过程，直接输出你对用户的回答内容。这是用户输入： ${content}`;
     const message = await callBackend('chat', templatedContent, contact.id, []);
 
-    //Audio transcription
     if(message == 'image') {
       return replyImage(contact, content);
     }
-    else if(message == 'vision') {
+    else if(message == 'vision' && isAlowedTrialUser) {
       return replyToVision(contact, content);
     }
 
@@ -187,9 +193,16 @@ async function replyImage(contact, content) {
 async function replyToVision(contact, content) {
   const { id: contactId } = contact;
   try {
-    if(!filesPerUsers[contact.id] || filesPerUsers[contact.id].length == 0)
-      await contact.say('你希望我来解释图像的问题对吗？但我并没有收到你的图片，请先发送图再提问。');
-
+    let exists = false;
+    if(filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
+      exists = fs.existsSync(filesPerUsers[contact.id][0]);
+    }
+    if(exists) {
+      await contact.say('你希望我来解释图像里的问题对吗？但我并没有收到你的图片，请先发图再提问。');
+    }
+    else {
+      filesPerUsers[contact.id] = [];
+    }
     const message = await callBackend('vision', content, contact.id, filesPerUsers[contact.id]);
 
     if (
