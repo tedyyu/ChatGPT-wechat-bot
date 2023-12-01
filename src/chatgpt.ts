@@ -136,7 +136,7 @@ export default class ChatGPT {
       if (responseBody.data && responseBody.data.length > 0) {
         return {
           'data': responseBody.data[0].url,
-          'tokens': responseBody.usage.total_tokens,
+          'tokens': 1,
         };
       } else {
         throw new Error(`${new Date().toLocaleString()}: No data found in the image api response`);

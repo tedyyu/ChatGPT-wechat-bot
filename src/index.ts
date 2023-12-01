@@ -207,7 +207,7 @@ async function replyToVision(alias, contact, content) {
     if(filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
       exists = fs.existsSync(filesPerUsers[contact.id][0]);
     }
-    if(exists) {
+    if(!exists) {
       await contact.say('你希望我来解释图像里的问题对吗？但我并没有收到你的图片，请先发图再提问。');
     }
     else {
