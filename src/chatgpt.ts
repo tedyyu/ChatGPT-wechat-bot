@@ -1,4 +1,4 @@
-import { ChatGPTClient } from "@waylaidwanderer/chatgpt-api";
+import { ChatGPTClient } from "chatgpt-api";
 import config from "./config.js";
 
 //For Image Generation
