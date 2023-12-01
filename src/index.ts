@@ -270,11 +270,7 @@ async function callBackend(command, content, contactId, localFiles) {
       throw new Error(`HTTP Status Code: ${response.status}, error message: ${responseBody.error}`);
     }
 
-    if (responseBody.data) {
-      return responseBody.data;
-    } else {
-      throw new Error(`No data found in the backend response`);
-    }
+    return response;
 
   } catch (error) {
       console.error(`${new Date().toLocaleString()}: Error during backend api: ${error}`);
