@@ -10,6 +10,10 @@ let bot: any = {};
 const startTime = new Date();
 let filesPerUsers : any = {}; //a map to keep user id and their recent files
 
+// create a file only file logger for token usage
+const usageLog = require('simple-node-logger').createSimpleFileLogger(config.tokenUsageLogFile);
+usageLog.setLevel('info');
+
 initProject();
 async function onMessage(msg) {
   // 避免重复发送
@@ -38,14 +42,14 @@ async function onMessage(msg) {
         const groupContent = content.replace(pattern, "");
         if(isText) {
           if(new RegExp(config.imageGenKeyRegex).test(content)) {
-            replyImage(room, groupContent);
+            replyImage(alias, room, groupContent);
             console.log(
               `${new Date().toLocaleString()}: Group name: ${topic} talker: ${await contact.name()} (id: ${await contact.id}) sent text content: ${content}`
             );
             return;
           }
           else
-            replyMessage(room, groupContent);
+            replyMessage(alias, room, groupContent);
         }
         return;
       } else {
@@ -76,7 +80,7 @@ async function onMessage(msg) {
           const fileName = `/tmp/${fileBox.name}`;
           await fileBox.toFile(fileName);
           console.log(`${new Date().toLocaleString()}: talker: ${alias} sent audio content saved locally at ${fileName}`);
-          content = await replyToAudio(contact, fileName);
+          content = await replyToAudio(alias, contact, fileName);
           console.log(`${new Date().toLocaleString()}: talker: ${alias} 's audio transcriptions: ${content}`);
         }
         else
@@ -86,7 +90,7 @@ async function onMessage(msg) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`);
 
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
-        return replyImage(contact, content);
+        return replyImage(alias, contact, content);
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
         let privateContent = content;
@@ -96,10 +100,10 @@ async function onMessage(msg) {
 
         if (isAlowedTrialUser &&
             filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
-          replyToVision(contact, privateContent);
+          replyToVision(alias, contact, privateContent);
         }
         else
-          replyMessage(contact, privateContent);
+          replyMessage(alias, contact, privateContent);
       }
       else {
         console.log(
@@ -122,20 +126,20 @@ async function onMessage(msg) {
     }
 }
 
-async function replyMessage(contact, content) {
+async function replyMessage(alias, contact, content) {
   const { id: contactId } = contact;
-  const alias = (await contact.alias()) || (await contact.name());
   const isAlowedTrialUser = new RegExp(config.trialFeatureUserAllowedListRegex).test(alias);
 
   try {
     const templatedContent = `分类用户需求，根据如下规则返回结果。 如果是生成图片，返回image，如果是理解或解释图片里的信息，分类为vision，否则直接回答用户提问，回答时不要加上分类过程，直接输出你对用户的回答内容。这是用户输入： ${content}`;
-    const message = await callBackend('chat', templatedContent, contact.id, []);
+    const {'data': message, 'tokens':tokens} = await callBackend('chat', templatedContent, contact.id, []);
+    usageLog.info('chat,', alias, ',', tokens);
 
     if(message == 'image') {
-      return replyImage(contact, content);
+      return replyImage(alias, contact, content);
     }
     else if(message == 'vision' && isAlowedTrialUser) {
-      return replyToVision(contact, content);
+      return replyToVision(alias, contact, content);
     }
 
     if (
@@ -158,11 +162,12 @@ async function replyMessage(contact, content) {
   }
 }
 
-async function replyImage(contact, content) {
+async function replyImage(alias, contact, content) {
   const { id: contactId } = contact;
   try {
 
-    const imageUrl = await callBackend('image', content, contact.id, []);
+    const {'data':imageUrl, 'tokens':tokens} = await callBackend('image', content, contact.id, []);
+    usageLog.info('image,', alias, ',', tokens);
     const message = '让您久等了，图片已生成，正在传输。'
 
     if (
@@ -190,7 +195,7 @@ async function replyImage(contact, content) {
   }
 }
 
-async function replyToVision(contact, content) {
+async function replyToVision(alias, contact, content) {
   const { id: contactId } = contact;
   try {
     let exists = false;
@@ -203,7 +208,8 @@ async function replyToVision(contact, content) {
     else {
       filesPerUsers[contact.id] = [];
     }
-    const message = await callBackend('vision', content, contact.id, filesPerUsers[contact.id]);
+    const {'data':message, 'tokens':tokens} = await callBackend('vision', content, contact.id, filesPerUsers[contact.id]);
+    usageLog.info('vision,', alias, ',', tokens);
 
     if (
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
@@ -225,10 +231,11 @@ async function replyToVision(contact, content) {
   }
 }
 
-async function replyToAudio(contact, localMp3File) {
+async function replyToAudio(alias, contact, localMp3File) {
   const { id: contactId } = contact;
   try {
-    const transcriptions = await callBackend('audio', '', contact.id, [localMp3File]);
+    const {'data':transcriptions, 'tokens': tokens} = await callBackend('audio', '', contact.id, [localMp3File]);
+    usageLog.info('audio,', alias, ',', tokens);
     return transcriptions;
   } catch (e: any) {
     console.error(e);

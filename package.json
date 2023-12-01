@@ -25,7 +25,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^18.11.11",
-    "@waylaidwanderer/chatgpt-api": "^1.33.1",
+    "@waylaidwanderer/chatgpt-api": "github:tedyyu/chatgpt-api#master",
     "express": "^4.18.2",
     "fetch-undici": "^3.0.2",
     "form-data": "^4.0.0",

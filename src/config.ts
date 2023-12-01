@@ -21,5 +21,7 @@ export default {
   //设置用于chat的model, e.g., gpt-3.5-turbo
   chatModel: 'gpt-4-1106-preview',
   //设置GPT4V和语音输入等测试功能的允许用户的昵称白名单
-  trialFeatureUserAllowedListRegex: '^$'
+  trialFeatureUserAllowedListRegex: '^$',
+  //使用tokens数量日志
+  tokenUsageLogFile: 'tokenUsage.csv',  
 };

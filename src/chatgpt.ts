@@ -89,15 +89,17 @@ export default class ChatGPT {
       content,
       options
     );
-    const { response, conversationId, messageId } = data;
+    const { response, conversationId, messageId, usage } = data;
     this.chatOption = {
       [contactId]: {
         conversationId,
         parentMessageId: messageId,
       },
     };
-    // response is a markdown-formatted string
-    return response;
+    return {
+      'data': response,
+      'tokens': usage.total_tokens,
+    };
   }
 
   // TypeScript function to send a POST request with JSON data
@@ -132,7 +134,10 @@ export default class ChatGPT {
       const responseBody = await response.json() as any;
       // Access the 'url' value inside the 'data' array
       if (responseBody.data && responseBody.data.length > 0) {
-        return responseBody.data[0].url;
+        return {
+          'data': responseBody.data[0].url,
+          'tokens': responseBody.usage.total_tokens,
+        };
       } else {
         throw new Error(`${new Date().toLocaleString()}: No data found in the image api response`);
       }
@@ -192,7 +197,10 @@ export default class ChatGPT {
       console.log(JSON.stringify(responseBody));
       // Access the 'url' value inside the 'data' array
       if (responseBody.choices && responseBody.choices.length > 0) {
-        return responseBody.choices[0].message?.content;
+        return {
+          'data': responseBody.choices[0].message?.content,
+          'tokens': responseBody.usage.total_tokens,
+        };
       } else {
         throw new Error(`${new Date().toLocaleString()}: No data found in the vision api response`);
       }
@@ -226,7 +234,10 @@ export default class ChatGPT {
 
       const responseBody: any = await response.json();
       console.log(JSON.stringify(responseBody));
-      return responseBody.text;
+      return {
+        'data': responseBody.text,
+        'tokens': 1,
+      };
     } catch (error) {
         console.error(`${new Date().toLocaleString()}: Error during audio/transcriptions api: ${error}`);
     }

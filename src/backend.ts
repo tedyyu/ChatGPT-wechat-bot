@@ -14,9 +14,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   try {
     const {content: content, contactId: contactId} = req.body;
     console.log(`/api/chat: user ${contactId}, prompt : ${content}`);
-    const message = await chatGPTClient.getGPTTextReply(content, contactId);
-    console.log(`  response: ${message}`);
-    res.send({'data': message});
+    const {data, tokens} = await chatGPTClient.getGPTTextReply(content, contactId);
+    console.log(`  total_tokens: ${tokens}, response: ${data}`);
+    res.send({'data': data, 'tokens': tokens});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
@@ -34,9 +34,9 @@ app.post('/api/image', async (req, res) => {
   try {
     const {content: content, contactId: contactId} = req.body;
     console.log(`/api/image: user ${contactId}, prompt : ${content}`);
-    const imageUrl = await chatGPTClient.getGPTImageReply(content, contactId);
-    console.log(`  response: ${imageUrl}`);
-    res.send({'data': imageUrl});
+    const {data, tokens} = await chatGPTClient.getGPTImageReply(content, contactId);
+    console.log(`  total_tokens: ${tokens}, response: ${data}`);
+    res.send({'data': data, 'tokens': tokens}); //imageURL
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
@@ -47,9 +47,9 @@ app.post('/api/vision', async (req, res) => {
   try {
     const {content: content, contactId: contactId, filePath: localImageFile } = req.body;
     console.log(`/api/vision: user ${contactId}, localImageFile: ${localImageFile}, prompt : ${content}`);
-    const result = await chatGPTClient.getGPTVisionReply(content, localImageFile);
-    console.log(`  response: ${result}`);
-    res.send({'data': result});
+    const {data, tokens}  = await chatGPTClient.getGPTVisionReply(content, localImageFile);
+    console.log(`  total_tokens: ${tokens}, response: ${data}`);
+    res.send({'data': data, 'tokens': tokens});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
@@ -60,9 +60,9 @@ app.post('/api/audio', async (req, res) => {
   try {
     const {content: content, contactId: contactId, filePath: localMp3File } = req.body;
     console.log(`/api/audio: user ${contactId}, localMp3File : ${localMp3File}`);
-    const transcriptions = await chatGPTClient.getGPTAudioReply(localMp3File);
-    console.log(`  response: ${transcriptions}`);
-    res.send({'data': transcriptions});
+    const {data, tokens}  = await chatGPTClient.getGPTAudioReply(localMp3File);
+    console.log(`  total_tokens: ${tokens}, response: ${data}`);
+    res.send({'data': data, 'tokens': tokens});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
