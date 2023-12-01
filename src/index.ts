@@ -5,13 +5,14 @@ import config from "./config.js";
 import ChatGPT from "./chatgpt.js";
 import { fetch } from 'fetch-undici';
 import fs from 'fs';
+import simpleNodeLogger from 'simple-node-logger';
 
 let bot: any = {};
 const startTime = new Date();
 let filesPerUsers : any = {}; //a map to keep user id and their recent files
 
 // create a file only file logger for token usage
-const usageLog = require('simple-node-logger').createSimpleFileLogger(config.tokenUsageLogFile);
+const usageLog = simpleNodeLogger.createSimpleFileLogger(config.tokenUsageLogFile);
 usageLog.setLevel('info');
 
 initProject();
