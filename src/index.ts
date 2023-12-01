@@ -221,9 +221,9 @@ async function replyToVision(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result);
+      await contact.say(result + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式");
     } else {
-      await contact.say(message);
+      await contact.say(message + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式");
     }
 
   } catch (e: any) {
