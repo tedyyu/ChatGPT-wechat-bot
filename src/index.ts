@@ -12,7 +12,11 @@ const startTime = new Date();
 let filesPerUsers : any = {}; //a map to keep user id and their recent files
 
 // create a file only file logger for token usage
-const usageLog = simpleNodeLogger.createSimpleFileLogger(config.tokenUsageLogFile);
+let opts = {
+  logFilePath: config.tokenUsageLogFile,
+  timestampFormat:'YYYY-MM-DD HH:mm:ss.SSS'
+}
+const usageLog = simpleNodeLogger.createSimpleFileLogger(opts);
 usageLog.setLevel('info');
 
 initProject();
@@ -270,7 +274,7 @@ async function callBackend(command, content, contactId, localFiles) {
       throw new Error(`HTTP Status Code: ${response.status}, error message: ${responseBody.error}`);
     }
 
-    return response;
+    return responseBody;
 
   } catch (error) {
       console.error(`${new Date().toLocaleString()}: Error during backend api: ${error}`);
