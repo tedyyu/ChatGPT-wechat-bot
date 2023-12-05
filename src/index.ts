@@ -46,11 +46,12 @@ async function onMessage(msg) {
       if (pattern.test(content)) {
         const groupContent = content.replace(pattern, "");
         if(isText) {
+          console.log(
+            `${new Date().toLocaleString()}: Group name: ${topic}, talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`
+          );
+
           if(new RegExp(config.imageGenKeyRegex).test(content)) {
             replyImage(alias, room, groupContent);
-            console.log(
-              `${new Date().toLocaleString()}: Group name: ${topic} talker: ${await contact.name()} (id: ${await contact.id}) sent text content: ${content}`
-            );
             return;
           }
           else
@@ -152,7 +153,7 @@ async function replyMessage(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result, contact);
+      await contact.say(`${result} ${contact.talker()}`);
       return;
     } else {
       await contact.say(message);
@@ -180,7 +181,7 @@ async function replyImage(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result, contact);
+      await contact.say(`${result} ${contact.talker()}`);
     } else {
       await contact.say(message);
     }
@@ -219,7 +220,7 @@ async function replyToVision(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式", contact);
+      await contact.say(`${result} \n-----------\n如果对图像提问完成，需要单独发送一个reset来进入其他对话模式 ${contact.talker()}`);
     } else {
       await contact.say(message + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式");
     }

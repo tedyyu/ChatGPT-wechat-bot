@@ -32,7 +32,6 @@ export default class SensitiveHandler {
 
     // Iterate over the lines array and check for matches
     this.words.forEach((word, index) => {
-      if(index==0) console.log(`first word is "${word}". includes:${input.includes(word)}`);
       if (input.includes(word)) {
         console.log(`Input matches sensitive "${word}" and will replace it with "**"`);
         input = input.replace(new RegExp(this.words[index], 'g'), '**'); // Replace occurrences of 'input' with '**'
