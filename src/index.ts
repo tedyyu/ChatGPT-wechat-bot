@@ -155,7 +155,7 @@ async function replyMessage(alias, contact, content) {
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
       (!contact.topic && config.privateReplyMode)
     ) {
-      const result = await sensitiveHandler.process(content + "\n-----------\n" + message);
+      const result = await sensitiveHandler.process(`@${alias} ${content}\n-----------\n${message}`);
       await contact.say(result);
       return;
     } else {
@@ -184,7 +184,7 @@ async function replyImage(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       content = await sensitiveHandler.process(content);
-      const result = content + "\n-----------\n" + message;
+      const result = `@${alias} ${content}\n-----------\n${message}`;
       await contact.say(result);
     } else {
       await contact.say(message);
@@ -223,7 +223,7 @@ async function replyToVision(alias, contact, content) {
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
       (!contact.topic && config.privateReplyMode)
     ) {
-      const result = await sensitiveHandler.process(content + "\n-----------\n" + message);
+      const result = await sensitiveHandler.process(`@${alias} ${content}\n-----------\n${message}`);
       await contact.say(`${result} \n-----------\n您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式`);
     } else {
       await contact.say(await sensitiveHandler.process(message) + "\n-----------\n" + "您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式");
