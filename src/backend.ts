@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
 import config from "./config.js";
 import ChatGPT from "./chatgpt.js";
+import SensitiveHandler from "./sensitive.js";
 
 const app = express();
 const port = config.backendPort;
 const chatGPTClient: any = new ChatGPT();
+const sensitiveHandler: any = new SensitiveHandler();
 
 // Use express.json() middleware to parse JSON payloads
 app.use(express.json());
@@ -16,7 +18,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     console.log(`/api/chat: user ${contactId}, prompt : ${content}`);
     const {data, tokens} = await chatGPTClient.getGPTTextReply(content, contactId);
     console.log(`  total_tokens: ${tokens}, response: ${data}`);
-    res.send({'data': data, 'tokens': tokens});
+    res.send({'data': await sensitiveHandler.process(data), 'tokens': tokens});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});
@@ -49,7 +51,7 @@ app.post('/api/vision', async (req, res) => {
     console.log(`/api/vision: user ${contactId}, localImageFile: ${localImageFile}, prompt : ${content}`);
     const {data, tokens}  = await chatGPTClient.getGPTVisionReply(content, localImageFile);
     console.log(`  total_tokens: ${tokens}, response: ${data}`);
-    res.send({'data': data, 'tokens': tokens});
+    res.send({'data': await sensitiveHandler.process(data), 'tokens': tokens});
   } catch (e: any) {
     console.error(e);
     res.status(400).send({'error': e.message});

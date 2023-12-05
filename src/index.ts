@@ -152,7 +152,7 @@ async function replyMessage(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result);
+      await contact.say(result, contact);
       return;
     } else {
       await contact.say(message);
@@ -180,7 +180,7 @@ async function replyImage(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result);
+      await contact.say(result, contact);
     } else {
       await contact.say(message);
     }
@@ -219,7 +219,7 @@ async function replyToVision(alias, contact, content) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = content + "\n-----------\n" + message;
-      await contact.say(result + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式");
+      await contact.say(result + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式", contact);
     } else {
       await contact.say(message + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式");
     }
