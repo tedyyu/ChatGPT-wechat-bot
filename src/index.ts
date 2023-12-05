@@ -54,11 +54,11 @@ async function onMessage(msg) {
           );
 
           if(new RegExp(config.imageGenKeyRegex).test(content)) {
-            replyImage(alias, room, groupContent, msg.from());
+            replyImage(alias, room, groupContent);
             return;
           }
           else
-            replyMessage(alias, room, groupContent, msg.from());
+            replyMessage(alias, room, groupContent);
         }
         return;
       } else {
@@ -99,7 +99,7 @@ async function onMessage(msg) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`);
 
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
-        return replyImage(alias, contact, content, msg.from());
+        return replyImage(alias, contact, content);
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
         let privateContent = content;
@@ -109,10 +109,10 @@ async function onMessage(msg) {
 
         if (isAlowedTrialUser &&
             filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
-          replyToVision(alias, contact, privateContent, msg.from());
+          replyToVision(alias, contact, privateContent);
         }
         else
-          replyMessage(alias, contact, privateContent, msg.from());
+          replyMessage(alias, contact, privateContent);
       }
       else {
         console.log(
@@ -135,7 +135,7 @@ async function onMessage(msg) {
     }
 }
 
-async function replyMessage(alias, contact, content, talker) {
+async function replyMessage(alias, contact, content) {
   const { id: contactId } = contact;
   const isAlowedTrialUser = new RegExp(config.trialFeatureUserAllowedListRegex).test(alias);
 
@@ -145,10 +145,10 @@ async function replyMessage(alias, contact, content, talker) {
     usageLog.info('chat,', alias, ',', tokens);
 
     if(message == 'image') {
-      return replyImage(alias, contact, content, talker);
+      return replyImage(alias, contact, content);
     }
     else if(message == 'vision' && isAlowedTrialUser) {
-      return replyToVision(alias, contact, content, talker);
+      return replyToVision(alias, contact, content);
     }
 
     if (
@@ -156,10 +156,7 @@ async function replyMessage(alias, contact, content, talker) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = await sensitiveHandler.process(content + "\n-----------\n" + message);
-      let mention = '';
-      if (talker)
-        mention = `@${talker.id}`;
-      await contact.say(`${mention} ${result}`);
+      await contact.say(result);
       return;
     } else {
       await contact.say(await sensitiveHandler.process(message));
@@ -174,7 +171,7 @@ async function replyMessage(alias, contact, content, talker) {
   }
 }
 
-async function replyImage(alias, contact, content, talker) {
+async function replyImage(alias, contact, content) {
   const { id: contactId } = contact;
   try {
 
@@ -188,10 +185,7 @@ async function replyImage(alias, contact, content, talker) {
     ) {
       content = await sensitiveHandler.process(content);
       const result = content + "\n-----------\n" + message;
-      let mention = '';
-      if (talker)
-        mention = `@${talker.id}`;
-      await contact.say(`${mention} ${result}`);
+      await contact.say(result);
     } else {
       await contact.say(message);
     }
@@ -211,7 +205,7 @@ async function replyImage(alias, contact, content, talker) {
   }
 }
 
-async function replyToVision(alias, contact, content, talker) {
+async function replyToVision(alias, contact, content) {
   const { id: contactId } = contact;
   try {
     let exists = false;
@@ -230,10 +224,7 @@ async function replyToVision(alias, contact, content, talker) {
       (!contact.topic && config.privateReplyMode)
     ) {
       const result = await sensitiveHandler.process(content + "\n-----------\n" + message);
-      let mention = '';
-      if (talker)
-        mention = `@${talker.id}`;
-      await contact.say(`${mention} ${result} \n-----------\n您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式 ${contact.talker()}`);
+      await contact.say(`${result} \n-----------\n您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式`);
     } else {
       await contact.say(await sensitiveHandler.process(message) + "\n-----------\n" + "您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式");
     }
