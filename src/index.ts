@@ -7,6 +7,9 @@ import { fetch } from 'fetch-undici';
 import fs from 'fs';
 import simpleNodeLogger from 'simple-node-logger';
 
+import SensitiveHandler from "./sensitive.js";
+const sensitiveHandler: any = new SensitiveHandler();
+
 let bot: any = {};
 const startTime = new Date();
 let filesPerUsers : any = {}; //a map to keep user id and their recent files
@@ -51,11 +54,11 @@ async function onMessage(msg) {
           );
 
           if(new RegExp(config.imageGenKeyRegex).test(content)) {
-            replyImage(alias, room, groupContent);
+            replyImage(alias, room, groupContent, msg.from());
             return;
           }
           else
-            replyMessage(alias, room, groupContent);
+            replyMessage(alias, room, groupContent, msg.from());
         }
         return;
       } else {
@@ -96,7 +99,7 @@ async function onMessage(msg) {
       console.log(`${new Date().toLocaleString()}: talker: ${alias} (id: ${await contact.id}) sent text content: ${content}`);
 
       if(new RegExp(config.imageGenKeyRegex).test(content)) {
-        return replyImage(alias, contact, content);
+        return replyImage(alias, contact, content, msg.from());
       }
       else if (content.startsWith(config.privateKey) || config.privateKey === "") {
         let privateContent = content;
@@ -106,10 +109,10 @@ async function onMessage(msg) {
 
         if (isAlowedTrialUser &&
             filesPerUsers[contact.id] && filesPerUsers[contact.id].length > 0) {
-          replyToVision(alias, contact, privateContent);
+          replyToVision(alias, contact, privateContent, msg.from());
         }
         else
-          replyMessage(alias, contact, privateContent);
+          replyMessage(alias, contact, privateContent, msg.from());
       }
       else {
         console.log(
@@ -132,7 +135,7 @@ async function onMessage(msg) {
     }
 }
 
-async function replyMessage(alias, contact, content) {
+async function replyMessage(alias, contact, content, talker) {
   const { id: contactId } = contact;
   const isAlowedTrialUser = new RegExp(config.trialFeatureUserAllowedListRegex).test(alias);
 
@@ -142,21 +145,24 @@ async function replyMessage(alias, contact, content) {
     usageLog.info('chat,', alias, ',', tokens);
 
     if(message == 'image') {
-      return replyImage(alias, contact, content);
+      return replyImage(alias, contact, content, talker);
     }
     else if(message == 'vision' && isAlowedTrialUser) {
-      return replyToVision(alias, contact, content);
+      return replyToVision(alias, contact, content, talker);
     }
 
     if (
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
       (!contact.topic && config.privateReplyMode)
     ) {
-      const result = content + "\n-----------\n" + message;
-      await contact.say(`${result} ${contact.talker()}`);
+      const result = await sensitiveHandler.process(content + "\n-----------\n" + message);
+      let mention = '';
+      if (talker)
+        mention = `@${talker.id}`;
+      await contact.say(`${mention} ${result}`);
       return;
     } else {
-      await contact.say(message);
+      await contact.say(await sensitiveHandler.process(message));
     }
   } catch (e: any) {
     if (e.message.includes("timed out")) {
@@ -168,7 +174,7 @@ async function replyMessage(alias, contact, content) {
   }
 }
 
-async function replyImage(alias, contact, content) {
+async function replyImage(alias, contact, content, talker) {
   const { id: contactId } = contact;
   try {
 
@@ -180,8 +186,12 @@ async function replyImage(alias, contact, content) {
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
       (!contact.topic && config.privateReplyMode)
     ) {
+      content = await sensitiveHandler.process(content);
       const result = content + "\n-----------\n" + message;
-      await contact.say(`${result} ${contact.talker()}`);
+      let mention = '';
+      if (talker)
+        mention = `@${talker.id}`;
+      await contact.say(`${mention} ${result}`);
     } else {
       await contact.say(message);
     }
@@ -201,7 +211,7 @@ async function replyImage(alias, contact, content) {
   }
 }
 
-async function replyToVision(alias, contact, content) {
+async function replyToVision(alias, contact, content, talker) {
   const { id: contactId } = contact;
   try {
     let exists = false;
@@ -219,10 +229,13 @@ async function replyToVision(alias, contact, content) {
       (contact.topic && contact?.topic() && config.groupReplyMode) ||
       (!contact.topic && config.privateReplyMode)
     ) {
-      const result = content + "\n-----------\n" + message;
-      await contact.say(`${result} \n-----------\n如果对图像提问完成，需要单独发送一个reset来进入其他对话模式 ${contact.talker()}`);
+      const result = await sensitiveHandler.process(content + "\n-----------\n" + message);
+      let mention = '';
+      if (talker)
+        mention = `@${talker.id}`;
+      await contact.say(`${mention} ${result} \n-----------\n您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式 ${contact.talker()}`);
     } else {
-      await contact.say(message + "\n-----------\n" + "如果对图像提问完成，需要单独发送一个reset来进入其他对话模式");
+      await contact.say(await sensitiveHandler.process(message) + "\n-----------\n" + "您还可以继续提问。如果对图像提问完成，需要单独发送一个reset后才能进入其他对话模式");
     }
 
   } catch (e: any) {
